@@ -6,25 +6,34 @@ var key = new NodeRSA({b:512});
 
 amqp.connect('amqp://localhost', function(err, conn) {
     conn.createChannel(function(err, ch) {
-        var q = 'hello_queue';
-        var text = "Hello world!";
+        ch.assertQueue('', {exclusive:true}, function (err, q) {
+            var corr = generateUUID();
 
-        // key.generateKeyPair();
+            ch.consume(q.queue, function(msg) {
+                if(msg.properties.correlationId == corr) {
+                    console.log('[x] Response: ' + msg.content.toString());
+                }
+            }, {noAck:true});
 
-        var encryptedMessage = key.encryptPrivate(text, 'base64', 'utf-8');
+            var message = 'Hello RPC world!'
+            var ecrMessage = key.encryptPrivate(message, 'base64', 'utf-8').toString();
+            var publicPem = key.exportKey('public');
 
-        var privatePem = key.exportKey('private');
-        console.log(privatePem);
+            // var key2 = new NodeRSA({b:512});
+            // var publicPem2 = key2.exportKey('public');
 
-        var publicPem = key.exportKey('public');
-        console.log(publicPem);
+            var data = {public_key: publicPem, message: ecrMessage};
+            var json = JSON.stringify(data);
 
-        var data = {public_key: publicPem, message: encryptedMessage};
-        var json = JSON.stringify(data);
+            ch.sendToQueue('rpc_queue',
+                new Buffer(json),
+                {correlationId:corr, replyTo: q.queue});
 
-        ch.assertQueue(q, {durable: false});
-        ch.sendToQueue(q, new Buffer(json));
-
-        console.log('[x] Sent encrypted message: ' + json);
+            console.log('[x] Sent encrypted message: ' + json);
+        });
     });
 });
+
+function generateUUID() {
+    return Math.random().toString() + Math.random().toString() + Math.random().toString();
+}
