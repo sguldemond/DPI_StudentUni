@@ -6,7 +6,7 @@ var key = new NodeRSA();
 
 amqp.connect('amqp://localhost', function (err, conn) {
     conn.createChannel(function (err, ch) {
-        var q = 'hello_queue';
+        var q = 'rpc_queue';
 
         ch.assertQueue(q, {durable:false});
 
@@ -21,9 +21,23 @@ amqp.connect('amqp://localhost', function (err, conn) {
 
             key.importKey(keyData, 'public');
 
-            var decryptedMessage = key.decryptPublic(data['message'], 'utf8');
-            console.log('Message: ' + decryptedMessage);
+            var response;
 
-        }, {noAck:true});
+            try {
+                var decryptedMessage = key.decryptPublic(data['message'], 'utf8');
+                console.log('Message: ' + decryptedMessage);
+                response = {message:'Validation successful'};
+            }
+            catch (err) {
+                response = {message:'Validation unsuccessful', error:err.message}
+            }
+
+            var json = JSON.stringify(response);
+
+            ch.sendToQueue(msg.properties.replyTo,
+                new Buffer(json),
+                {correlationId: msg.properties.correlationId});
+            ch.ack(msg);
+        });
     });
 });
