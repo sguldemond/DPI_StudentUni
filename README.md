@@ -2,5 +2,5 @@
 
 ## Packages
 
-`npm install node-rsa`
-`npm install amqplib`
+* Node RSA: `npm install node-rsa`
+* RabbitMQ: `npm install amqplib`
