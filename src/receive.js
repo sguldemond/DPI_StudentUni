@@ -6,7 +6,7 @@ var key = new NodeRSA();
 
 amqp.connect('amqp://localhost', function (err, conn) {
     conn.createChannel(function (err, ch) {
-        var q = 'rpc_queue';
+        var q = 'pm_queue';
 
         ch.assertQueue(q, {durable:false});
 
