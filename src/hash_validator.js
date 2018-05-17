@@ -25,10 +25,17 @@ amqp.connect('amqp://localhost', function (err, conn) {
             try {
                 var decryptedMessage = key.decryptPublic(content.ecr_message, 'utf8');
                 console.log('Message: ' + decryptedMessage);
-                response = {message:'Validation successful'};
+                response = {
+                    validated:true,
+                    req_id: content.req_id
+                };
             }
             catch (err) {
-                response = {message:'Validation unsuccessful', error:err.message}
+                response = {
+                    validated:false,
+                    error:err.message,
+                    req_id: content.req_id
+                }
             }
             var jsonResponse = JSON.stringify(response);
 

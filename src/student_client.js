@@ -36,6 +36,9 @@ amqp.connect('amqp://localhost', function(err, conn) {
 
             var jsonData = JSON.stringify(data);
 
+            console.log("Reply queue: " + q.queue);
+            console.log("Corr id: " + corr);
+
             var queue = "pm_queue";
             ch.sendToQueue(queue,
                 new Buffer(jsonData),
