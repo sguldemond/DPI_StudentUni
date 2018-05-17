@@ -7,9 +7,7 @@ var key = new NodeRSA();
 amqp.connect('amqp://localhost', function (err, conn) {
     conn.createChannel(function (err, ch) {
         var q = 'pm_queue';
-
         ch.assertQueue(q, {durable:false});
-
         console.log('[*] Waiting for messages in %s ...', q);
 
         ch.consume(q, function (msg) {

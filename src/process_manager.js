@@ -1,16 +1,22 @@
 #!/usr/bin/env node
 
 var amqp = require('amqplib/callback_api');
+var uuid = require('uuid/v4');
 
-// list to track messages and return status updates
+var connection;
 var request_status = [];
 
 amqp.connect('amqp://localhost', function (err, conn) {
-    onConnect(err, conn);
+    if(err != undefined) {
+        console.error(err);
+    } else {
+        connection = conn;
+        onConnect();
+    }
 });
 
-function onConnect(err, conn) {
-    conn.createChannel(function (err, ch) {
+function onConnect() {
+    connection.createChannel(function (err, ch) {
         var queue = 'pm_queue';
 
         ch.assertQueue(queue, {durable:false});
@@ -40,7 +46,7 @@ function onConnect(err, conn) {
                 req_id: metaData.req_id
             });
 
-            startValidation(hvMessage, conn);
+            startValidation(hvMessage);
 
             var jsonResponse = JSON.stringify({
                 response: "Request received",
@@ -58,10 +64,10 @@ function onConnect(err, conn) {
     });
 }
 
-function startValidation(message, conn) {
-    conn.createChannel(function (err, ch) {
+function startValidation(message) {
+    connection.createChannel(function (err, ch) {
         ch.assertQueue('', {exclusive:false}, function (err, q) {
-            var corr = generateUUID();
+            var corr = uuid();
 
             ch.consume(q.queue, function (msg) {
                 if(msg.properties.correlationId === corr) {
@@ -74,7 +80,7 @@ function startValidation(message, conn) {
                             if(x.meta_data.req_id === valReply.req_id) {
                                 x.status.validated = true;
 
-                                updateStatus(x.meta_data, x.status, conn);
+                                updateStatus(x.meta_data, x.status);
                             }
                         })
                     }
@@ -86,25 +92,23 @@ function startValidation(message, conn) {
                 {correlationId:corr, replyTo: q.queue});
 
             console.log('[*] Sent message for validation...');
-        })
-    })
+        });
+    });
 }
 
-function updateStatus(clientData, status, conn) {
-    conn.createChannel(function (err, ch) {
+function startGradingProcess(message) {
+
+}
+
+function updateStatus(clientData, status) {
+    connection.createChannel(function (err, ch) {
         ch.assertQueue('', {exclusive:false}, function (err, q) {
             var jsonStatus = JSON.stringify(status);
-            console.log("Client queue: " + clientData.reply_queue);
-
             ch.sendToQueue(clientData.reply_queue,
                 new Buffer(jsonStatus),
                 {correlationId:clientData.req_id});
 
             console.log('[x] Sent status update');
-        })
-    })
-}
-
-function generateUUID() {
-    return Math.random().toString() + Math.random().toString() + Math.random().toString();
+        });
+    });
 }

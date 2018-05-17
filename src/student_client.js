@@ -3,12 +3,13 @@
 var amqp = require('amqplib/callback_api');
 var NodeRSA = require('node-rsa');
 var key = new NodeRSA({b:512});
+var uuid = require('uuid/v4');
 var args = process.argv;
 
 amqp.connect('amqp://localhost', function(err, conn) {
     conn.createChannel(function(err, ch) {
         ch.assertQueue('', {exclusive:true}, function (err, q) {
-            var corr = generateUUID();
+            var corr = uuid();
 
             ch.consume(q.queue, function(msg) {
                 if(msg.properties.correlationId === corr) {
@@ -24,9 +25,6 @@ amqp.connect('amqp://localhost', function(err, conn) {
             var ecrMessage = key.encryptPrivate(message, 'base64', 'utf-8').toString();
             var publicPem = key.exportKey('public');
 
-            // var key2 = new NodeRSA({b:512});
-            // var publicPem2 = key2.exportKey('public');
-
             var data = {
                 student_no: studentNo,
                 message: message,
@@ -35,9 +33,6 @@ amqp.connect('amqp://localhost', function(err, conn) {
             };
 
             var jsonData = JSON.stringify(data);
-
-            console.log("Reply queue: " + q.queue);
-            console.log("Corr id: " + corr);
 
             var queue = "pm_queue";
             ch.sendToQueue(queue,
@@ -48,7 +43,3 @@ amqp.connect('amqp://localhost', function(err, conn) {
         });
     });
 });
-
-function generateUUID() {
-    return Math.random().toString() + Math.random().toString() + Math.random().toString();
-}

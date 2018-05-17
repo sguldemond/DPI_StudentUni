@@ -6,19 +6,14 @@ var key = new NodeRSA();
 
 amqp.connect('amqp://localhost', function (err, conn) {
     conn.createChannel(function (err, ch) {
-        var queue = 'hv_queue';
-
+        var queue = 'hv_queue'
         ch.assertQueue(queue, {durable:false});
-
         console.log('[*] Hash Validator is waiting for messages on %s ...', queue);
 
         ch.consume(queue, function (msg) {
             console.log('[x] Received message');
 
             var content = JSON.parse(msg.content.toString());
-
-            console.log(content.public_key);
-
             key.importKey(content.public_key, 'public');
 
             var response;
@@ -43,6 +38,6 @@ amqp.connect('amqp://localhost', function (err, conn) {
                 new Buffer(jsonResponse),
                 {correlationId: msg.properties.correlationId});
             ch.ack(msg);
-        })
-    })
-})
+        });
+    });
+});
