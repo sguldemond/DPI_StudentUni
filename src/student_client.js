@@ -11,7 +11,7 @@ amqp.connect('amqp://localhost', function(err, conn) {
             var corr = generateUUID();
 
             ch.consume(q.queue, function(msg) {
-                if(msg.properties.correlationId == corr) {
+                if(msg.properties.correlationId === corr) {
                     console.log('[x] Response: ' + msg.content.toString());
                 }
             }, {noAck:true});
@@ -28,21 +28,20 @@ amqp.connect('amqp://localhost', function(err, conn) {
             // var publicPem2 = key2.exportKey('public');
 
             var data = {
-                studentNo: studentNo,
+                student_no: studentNo,
                 message: message,
                 public_key: publicPem,
-                ecrMessage: ecrMessage
+                ecr_message: ecrMessage
             };
 
-            var json = JSON.stringify(data);
-            console.log(json);
+            var jsonData = JSON.stringify(data);
 
             var queue = "pm_queue";
             ch.sendToQueue(queue,
-                new Buffer(json),
+                new Buffer(jsonData),
                 {correlationId:corr, replyTo: q.queue});
 
-            console.log('[x] Sent encrypted message: ' + json);
+            console.log('[x] Sent encrypted message: ' + jsonData);
         });
     });
 });
