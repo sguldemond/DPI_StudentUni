@@ -2,12 +2,24 @@
 
 var amqp = require('amqplib/callback_api');
 var NodeRSA = require('node-rsa');
-var key = new NodeRSA({b:512});
 var uuid = require('uuid/v4');
 var args = process.argv;
 
-amqp.connect('amqp://localhost', function(err, conn) {
-    conn.createChannel(function(err, ch) {
+var connection;
+var key = new NodeRSA({b:512});
+
+
+amqp.connect('amqp://localhost', function (err, conn) {
+    if(err != undefined) {
+        console.error(err);
+    } else {
+        connection = conn;
+        sendMessage()
+    }
+});
+
+function sendMessage() {
+    connection.createChannel(function(err, ch) {
         ch.assertQueue('', {exclusive:true}, function (err, q) {
             var corr = uuid();
 
@@ -17,8 +29,8 @@ amqp.connect('amqp://localhost', function(err, conn) {
                 }
             }, {noAck:true});
 
-            var message = 'Hello RPC world!';
-            // var message = args[2];
+            // var message = 'Hello RPC world!';
+            var message = args[2];
 
             var studentNo = "254083";
 
@@ -39,7 +51,8 @@ amqp.connect('amqp://localhost', function(err, conn) {
                 new Buffer(jsonData),
                 {correlationId:corr, replyTo: q.queue});
 
-            console.log('[x] Sent encrypted message: ' + jsonData);
+            var response = "[x] Sent encrypted message with corrId: ";
+            console.log(response + corr);
         });
     });
-});
+}

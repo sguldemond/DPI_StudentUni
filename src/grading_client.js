@@ -44,9 +44,10 @@ function onConnect() {
 }
 
 function gradeMessage(req_id, grade) {
+    var message;
     messages_to_grade.forEach(function (x) {
         if(x.content.req_id === req_id) {
-            var message = x;
+            message = x;
             connection.createChannel(function (err, ch) {
                 ch.assertQueue('', {exclusive:false}, function (err, q) {
                     var response = {
@@ -59,16 +60,22 @@ function gradeMessage(req_id, grade) {
                     ch.sendToQueue(message.meta_data.reply_queue,
                         new Buffer(jsonResponse),
                         {correlationId: message.meta_data.req_id});
-                })
-            })
+                });
+            });
         }
-    })
+    });
+
+    messages_to_grade.splice(messages_to_grade.indexOf(message), 1);
 }
 
 app.use(bodyParser.json());
 
 app.get('/', function (req, res) {
     res.end("Hello world from Grading Client")
+});
+
+app.get('/messages', function (req, res) {
+    res.end(JSON.stringify(messages_to_grade));
 });
 
 app.post('/grade', function (req, res) {
