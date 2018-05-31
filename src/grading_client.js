@@ -43,14 +43,14 @@ function onConnect() {
    });
 }
 
-function gradeMessage(req_id) {
+function gradeMessage(req_id, grade) {
     messages_to_grade.forEach(function (x) {
         if(x.content.req_id === req_id) {
             var message = x;
             connection.createChannel(function (err, ch) {
                 ch.assertQueue('', {exclusive:false}, function (err, q) {
                     var response = {
-                        graded: true,
+                        grade: grade,
                         req_id: message.content.req_id
                     };
 
@@ -78,7 +78,7 @@ app.post('/grade', function (req, res) {
     var grade = body.grade;
     var req_id = body.reqId;
 
-    gradeMessage(req_id);
+    gradeMessage(req_id, grade);
 
     res.end("Grade successful");
 });

@@ -79,7 +79,7 @@ function startValidation(message) {
                         request_status.forEach(function (x) {
                             if(x.meta_data.req_id === valReply.req_id) {
                                 x.status.validated = true;
-                                updateStatus(x.meta_data, x.status);
+                                sendResponse(x.meta_data, x.status);
 
                                 var gradeMessage = JSON.stringify({
                                     message: x.content.message,
@@ -111,11 +111,18 @@ function startGradingProcess(message) {
                     console.log('[x] Response from grader: ' + msg.content.toString());
                     var gradReply = JSON.parse(msg.content.toString());
 
-                    if(gradReply.graded === true) {
+                    if(gradReply.grade !== undefined) {
                         request_status.forEach(function (x) {
                             if(x.meta_data.req_id === gradReply.req_id) {
                                 x.status.graded = true;
-                                updateStatus(x.meta_data, x.status);
+                                sendResponse(x.meta_data, x.status);
+
+                                var gradeResponse = {
+                                    response: "Message is graded",
+                                    grade: gradReply.grade
+                                };
+
+                                sendResponse(x.meta_data, gradeResponse);
                             }
                         });
                     }
@@ -131,7 +138,7 @@ function startGradingProcess(message) {
     })
 }
 
-function updateStatus(clientData, status) {
+function sendResponse(clientData, status) {
     connection.createChannel(function (err, ch) {
         ch.assertQueue('', {exclusive:false}, function (err, q) {
             var jsonStatus = JSON.stringify(status);
