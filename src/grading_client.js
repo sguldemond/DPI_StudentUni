@@ -47,7 +47,6 @@ function gradeMessage(req_id) {
     messages_to_grade.forEach(function (x) {
         if(x.content.req_id === req_id) {
             var message = x;
-            console.log(message);
             connection.createChannel(function (err, ch) {
                 ch.assertQueue('', {exclusive:false}, function (err, q) {
                     var response = {
@@ -59,19 +58,9 @@ function gradeMessage(req_id) {
 
                     ch.sendToQueue(message.meta_data.reply_queue,
                         new Buffer(jsonResponse),
-                        {correlationId: message.meta_data.correlationId});
-                });
-            });
-        }
-    });
-}
-
-function test(corr_id) {
-    messages_to_grade.forEach(function (x) {
-        console.log("Hi from: " + JSON.stringify(x));
-
-        if(x.content.req_id === corr_id) {
-            console.log("Hi from with: " + corr_id);
+                        {correlationId: message.meta_data.req_id});
+                })
+            })
         }
     })
 }
@@ -90,7 +79,6 @@ app.post('/grade', function (req, res) {
     var req_id = body.reqId;
 
     gradeMessage(req_id);
-    // test(corr_id);
 
     res.end("Grade successful");
 });
