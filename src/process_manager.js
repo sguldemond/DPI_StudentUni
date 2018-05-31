@@ -26,7 +26,7 @@ function onConnect() {
         ch.consume(queue, function (msg) {
             console.log('[x] Received message');
 
-            var metaData = {
+            var meta_data = {
                 reply_queue: msg.properties.replyTo,
                 req_id: msg.properties.correlationId
             };
@@ -35,7 +35,7 @@ function onConnect() {
             var status = {validated: false, graded: false};
 
             request_status.push({
-                meta_data: metaData,
+                meta_data: meta_data,
                 content: content,
                 status: status
             });
@@ -43,7 +43,7 @@ function onConnect() {
             var hvMessage = JSON.stringify({
                 public_key: content.public_key,
                 ecr_message: content.ecr_message,
-                req_id: metaData.req_id
+                req_id: meta_data.req_id
             });
 
             startValidation(hvMessage);
@@ -81,8 +81,10 @@ function startValidation(message) {
                                 x.status.validated = true;
                                 updateStatus(x.meta_data, x.status);
 
-                                var gradeMessage = JSON.stringify(
-                                    {message: x.content.message, req_id: x.meta_data.req_id});
+                                var gradeMessage = JSON.stringify({
+                                    message: x.content.message,
+                                    req_id: x.meta_data.req_id
+                                });
                                 startGradingProcess(gradeMessage);
                             }
                         })
