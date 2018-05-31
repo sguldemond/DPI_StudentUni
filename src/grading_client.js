@@ -15,13 +15,12 @@ amqp.connect('amqp://localhost', function (err, conn) {
     } else {
         connection = conn;
         onConnect();
-        // gradeMessage(messages_to_grade[0]);
     }
 });
 
 function onConnect() {
    connection.createChannel(function (err, ch) {
-       var queue = 'gd_queue';
+       var queue = 'grading_queue';
        ch.assertQueue(queue, {durable:false});
        console.log('[*] Grading Client is waiting for messages on %s ...', queue);
 
@@ -36,11 +35,7 @@ function onConnect() {
                req_id: msg.properties.correlationId
            };
 
-           var corr_id = uuid();
-           console.log("Message made with corrId: " + corr_id);
-
            messages_to_grade.push({
-               corr_id: corr_id,
                meta_data: meta_data,
                content: content
            });
@@ -48,14 +43,13 @@ function onConnect() {
    });
 }
 
-function gradeMessage(corr_id) {
-    connection.createChannel(function (err, ch) {
-        console.log("Error: " + err);
-        ch.assertQueue('', {exclusive:false}, function (err, q) {
-            messages_to_grade.forEach(function (x) {
-                if(x.corr_id === corr_id) {
-                    var message = x;
-
+function gradeMessage(req_id) {
+    messages_to_grade.forEach(function (x) {
+        if(x.content.req_id === req_id) {
+            var message = x;
+            console.log(message);
+            connection.createChannel(function (err, ch) {
+                ch.assertQueue('', {exclusive:false}, function (err, q) {
                     var response = {
                         graded: true,
                         req_id: message.content.req_id
@@ -63,13 +57,23 @@ function gradeMessage(corr_id) {
 
                     var jsonResponse = JSON.stringify(response);
 
-                    ch.sendToQueue(message.meta_data.replyTo,
+                    ch.sendToQueue(message.meta_data.reply_queue,
                         new Buffer(jsonResponse),
                         {correlationId: message.meta_data.correlationId});
-                }
+                });
             });
-        });
+        }
     });
+}
+
+function test(corr_id) {
+    messages_to_grade.forEach(function (x) {
+        console.log("Hi from: " + JSON.stringify(x));
+
+        if(x.content.req_id === corr_id) {
+            console.log("Hi from with: " + corr_id);
+        }
+    })
 }
 
 app.use(bodyParser.json());
@@ -83,9 +87,10 @@ app.post('/grade', function (req, res) {
     console.log("Grade received: " + JSON.stringify(body));
 
     var grade = body.grade;
-    var corr_id = body.corrId;
+    var req_id = body.reqId;
 
-    gradeMessage(corr_id);
+    gradeMessage(req_id);
+    // test(corr_id);
 
     res.end("Grade successful");
 });

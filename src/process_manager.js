@@ -122,7 +122,7 @@ function startGradingProcess(message) {
                 }
             }, {noAck:true});
 
-            ch.sendToQueue('gd_queue',
+            ch.sendToQueue('grading_queue',
                 new Buffer(message),
                 {correlationId: corr, replyTo: q.queue});
 
