@@ -12,7 +12,7 @@ amqp.connect('amqp://localhost', function (err, conn) {
            console.log('[x] Received message');
 
            var content = JSON.parse(msg.content.toString());
-            
+
 
        })
    })
