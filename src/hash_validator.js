@@ -6,7 +6,7 @@ var key = new NodeRSA();
 
 amqp.connect('amqp://localhost', function (err, conn) {
     conn.createChannel(function (err, ch) {
-        var queue = 'hv_queue'
+        var queue = 'hv_queue';
         ch.assertQueue(queue, {durable:false});
         console.log('[*] Hash Validator is waiting for messages on %s ...', queue);
 

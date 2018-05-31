@@ -79,8 +79,11 @@ function startValidation(message) {
                         request_status.forEach(function (x) {
                             if(x.meta_data.req_id === valReply.req_id) {
                                 x.status.validated = true;
-
                                 updateStatus(x.meta_data, x.status);
+
+                                var gradeMessage = JSON.stringify(
+                                    {message: x.content.message, req_id: x.meta_data.req_id});
+                                startGradingProcess(gradeMessage);
                             }
                         })
                     }
@@ -89,7 +92,7 @@ function startValidation(message) {
 
             ch.sendToQueue('hv_queue',
                 new Buffer(message),
-                {correlationId:corr, replyTo: q.queue});
+                {correlationId: corr, replyTo: q.queue});
 
             console.log('[*] Sent message for validation...');
         });
@@ -97,7 +100,33 @@ function startValidation(message) {
 }
 
 function startGradingProcess(message) {
+    connection.createChannel(function (err, ch) {
+        ch.assertQueue('', {exclusive:false}, function (err, q) {
+            var corr = uuid();
 
+            ch.consume(q.queue, function(msg) {
+                if(msg.properties.correlationId === corr) {
+                    console.log('[x] Response from grader: ' + msg.content.toString());
+                    var gradReply = JSON.parse(msg.content.toString());
+
+                    if(gradReply.graded === true) {
+                        request_status.forEach(function (x) {
+                            if(x.meta_data.req_id === gradReply.req_id) {
+                                x.status.graded = true;
+                                updateStatus(x.meta_data, x.status);
+                            }
+                        });
+                    }
+                }
+            }, {noAck:true});
+
+            ch.sendToQueue('gd_queue',
+                new Buffer(message),
+                {correlationId: corr, replyTo: q.queue});
+
+            console.log('[*] Sent message for grading...');
+        })
+    })
 }
 
 function updateStatus(clientData, status) {
